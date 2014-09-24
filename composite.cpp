@@ -143,10 +143,10 @@ void writeImage(unsigned char *glut_display_map, int window_width, int window_he
  * output	- None
  */
 void handleKey(unsigned char key, int x, int y) {
-    int window_width = glutGet(GLUT_WINDOW_WIDTH), window_height = glutGet(GLUT_WINDOW_HEIGHT);
 
     if (key == 'w') {
         if(OUTPUT_FILE != NULL) {
+            int window_width = glutGet(GLUT_WINDOW_WIDTH), window_height = glutGet(GLUT_WINDOW_HEIGHT);
             unsigned char glut_display_map[window_width*window_height*4];
             glReadPixels(0,0, window_width, window_height, GL_RGBA, GL_UNSIGNED_BYTE, glut_display_map);
             writeImage(glut_display_map, window_width, window_height);
