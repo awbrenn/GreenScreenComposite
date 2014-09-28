@@ -34,6 +34,10 @@ int IMAGE_WIDTH;
 pixel **PIXMAP;
 char *OUTPUT_FILE = NULL;
 
+// Settings
+float HUE_RANGE[2] = {125,145};
+// float VALUE_RANGE[2] = {}
+
 /* Handles errors
  * input	- message is printed to stdout, if kill is true end program
  * output	- None
@@ -43,6 +47,52 @@ void handleError (string message, bool kill) {
     cout << "ERROR: " << message << "\n";
     if (kill)
         exit(0);
+}
+
+void convertRGBtoHSV (unsigned char r, unsigned char g, unsigned char b, float &hue, float &saturation, float &value) {
+
+    float red, green, blue;
+    float maxc, minc, delta;
+
+    // r, g, b to 0 - 1 scale
+    red = r / 255.0; green = g / 255.0; blue = b / 255.0;
+
+    maxc = max(max(red, green), blue);
+    minc = min(min(red, green), blue);
+
+    value = maxc;        // value is maximum of r, g, b
+
+    if(maxc == 0){    // saturation and hue 0 if value is 0
+        saturation = 0;
+        hue = 0;
+    } else {
+        saturation = (maxc - minc) / maxc; 	// saturation is color purity on scale 0 - 1
+
+        delta = maxc - minc;
+        if(delta == 0)           // hue doesn't matter if saturation is 0
+            hue = 0;
+        else{
+            if(red == maxc)       // otherwise, determine hue on scale 0 - 360
+                hue = (green - blue) / delta;
+            else if(green == maxc)
+                hue = 2.0 + (blue - red) / delta;
+            else // (blue == maxc)
+                hue = 4.0 + (red - green) / delta;
+            hue = hue * 60.0;
+            if(hue < 0)
+                hue = hue + 360.0;
+        }
+    }
+}
+
+unsigned char calculateAlpha(unsigned char r, unsigned char g, unsigned char b) {
+    float hue , saturation, value;
+    unsigned char alpha = 255;
+
+    convertRGBtoHSV(r, g, b, hue, saturation, value);
+    if (hue > HUE_RANGE[0] and hue < HUE_RANGE[1]) alpha = 0;
+
+    return alpha;
 }
 
 /* Converts pixels from vector to pixel pointers
@@ -64,7 +114,7 @@ void convertVectorToPixelPointers (vector<unsigned char> vector_pixels, int chan
                 PIXMAP[row][col].r = vector_pixels[i++];
                 PIXMAP[row][col].g = vector_pixels[i++];
                 PIXMAP[row][col].b = vector_pixels[i++];
-                PIXMAP[row][col].a = 255;
+                PIXMAP[row][col].a = calculateAlpha(PIXMAP[row][col].r, PIXMAP[row][col].g, PIXMAP[row][col].b);
             }
     }
     else if (channels == 4) {
@@ -73,7 +123,8 @@ void convertVectorToPixelPointers (vector<unsigned char> vector_pixels, int chan
                 PIXMAP[row][col].r = vector_pixels[i++];
                 PIXMAP[row][col].g = vector_pixels[i++];
                 PIXMAP[row][col].b = vector_pixels[i++];
-                PIXMAP[row][col].a = vector_pixels[i++];
+                PIXMAP[row][col].a = calculateAlpha(PIXMAP[row][col].r, PIXMAP[row][col].g, PIXMAP[row][col].b);
+                i++;
             }
     }
 
@@ -107,11 +158,10 @@ void readImage (string filename) {
  * output		- None
  * side effect	- writes image to a file
  */
-void writeImage(unsigned char *glut_display_map, int window_width, int window_height) {
+void writeImage() {
     const char *filename = OUTPUT_FILE;
-    const int xres = window_width, yres = window_height;
+    const int xres = IMAGE_WIDTH, yres = IMAGE_HEIGHT;
     const int channels = 4; // RGBA
-    int scanlinesize = xres * channels;
     ImageOutput *out = ImageOutput::create (filename);
     if (! out) {
         handleError("Could not create output file", false);
@@ -119,7 +169,7 @@ void writeImage(unsigned char *glut_display_map, int window_width, int window_he
     }
     ImageSpec spec (xres, yres, channels, TypeDesc::UINT8);
     out->open (filename, spec);
-    out->write_image (TypeDesc::UINT8, glut_display_map+(window_height-1)*scanlinesize, AutoStride, -scanlinesize, AutoStride);
+    out->write_image(TypeDesc::UINT8, PIXMAP[0]);
     out->close ();
     delete out;
     cout << "SUCCESS: Image successfully written to " << OUTPUT_FILE << "\n";
@@ -132,9 +182,11 @@ void writeImage(unsigned char *glut_display_map, int window_width, int window_he
  */
 void drawImage() {
     glClear(GL_COLOR_BUFFER_BIT);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glRasterPos2i(0,0);
     glDrawPixels(IMAGE_WIDTH, IMAGE_HEIGHT, GL_RGBA, GL_UNSIGNED_BYTE, PIXMAP[0]);
-    glutSwapBuffers();
+    glFlush();
 }
 
 /* Key press handler
@@ -144,10 +196,7 @@ void drawImage() {
 void handleKey(unsigned char key, int x, int y) {
 
     if (key == 'w') {
-        int window_width = glutGet(GLUT_WINDOW_WIDTH), window_height = glutGet(GLUT_WINDOW_HEIGHT);
-        unsigned char glut_display_map[window_width*window_height*4];
-        glReadPixels(0,0, window_width, window_height, GL_RGBA, GL_UNSIGNED_BYTE, glut_display_map);
-        writeImage(glut_display_map, window_width, window_height);
+        writeImage();
     }
     else if (key == 'q' || key == 'Q') {
         cerr << "\nProgram Terminated." << endl;
@@ -164,7 +213,7 @@ void openGlInit(int argc, char* argv[]) {
     glutInit(&argc, argv);
 
     // create the graphics window, giving width, height, and title text
-    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA);
+    glutInitDisplayMode(GLUT_SINGLE | GLUT_RGBA);
     glutInitWindowSize(IMAGE_WIDTH, IMAGE_HEIGHT);
     glutCreateWindow("A Display for an Image");
 
@@ -181,7 +230,7 @@ void openGlInit(int argc, char* argv[]) {
     gluOrtho2D(0, IMAGE_WIDTH, 0, IMAGE_HEIGHT);
 
     // specify window clear (background) color to be opaque white
-    glClearColor(0, 0, 0, 0);
+    glClearColor(1, 1, 1, 0);
 
     // Routine that loops forever looking for events. It calls the registered
     // callback routine to handle each event that is detected
