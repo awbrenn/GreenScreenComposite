@@ -132,6 +132,15 @@ void convertVectorToPixelPointers (vector<unsigned char> vector_pixels, int chan
         handleError ("Could not convert image.. sorry", 1);
 }
 
+pixel ** flipImageVertical(pixel **pixmap_vertical_flip) {
+    for (int row = IMAGE_HEIGHT-1; row >= 0; row--)
+        for (int col = 0; col < IMAGE_WIDTH; col++) {
+            pixmap_vertical_flip[(IMAGE_HEIGHT-1)-row][col] = PIXMAP[row][col];
+    }
+
+    return pixmap_vertical_flip;
+}
+
 /* Reads image specified in argv[1]
  * input		- the input file name
  * output		- None
@@ -160,18 +169,27 @@ void readImage (string filename) {
  */
 void writeImage() {
     const char *filename = OUTPUT_FILE;
-    const int xres = IMAGE_WIDTH, yres = IMAGE_HEIGHT;
     const int channels = 4; // RGBA
+    // initialize pixmap_vertical_flip
+    pixel **pixmap_vertical_flip;
+    pixmap_vertical_flip = new pixel *[IMAGE_HEIGHT];
+    pixmap_vertical_flip[0] = new pixel[IMAGE_WIDTH * IMAGE_HEIGHT];
+    for (int i = 1; i < IMAGE_HEIGHT; i++)
+        pixmap_vertical_flip[i] = pixmap_vertical_flip[i - 1] + IMAGE_WIDTH;
+
+    pixmap_vertical_flip = flipImageVertical(pixmap_vertical_flip);
     ImageOutput *out = ImageOutput::create (filename);
     if (! out) {
         handleError("Could not create output file", false);
         return;
     }
-    ImageSpec spec (xres, yres, channels, TypeDesc::UINT8);
+    ImageSpec spec (IMAGE_WIDTH, IMAGE_HEIGHT, channels, TypeDesc::UINT8);
     out->open (filename, spec);
-    out->write_image(TypeDesc::UINT8, PIXMAP[0]);
+
+    out->write_image(TypeDesc::UINT8, pixmap_vertical_flip[0]);
     out->close ();
     delete out;
+    delete pixmap_vertical_flip;
     cout << "SUCCESS: Image successfully written to " << OUTPUT_FILE << "\n";
 }
 
