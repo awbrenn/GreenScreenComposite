@@ -136,7 +136,7 @@ pixel ** flipImageVertical(pixel **pixmap_vertical_flip) {
     for (int row = IMAGE_HEIGHT-1; row >= 0; row--)
         for (int col = 0; col < IMAGE_WIDTH; col++) {
             pixmap_vertical_flip[(IMAGE_HEIGHT-1)-row][col] = PIXMAP[row][col];
-    }
+        }
 
     return pixmap_vertical_flip;
 }
