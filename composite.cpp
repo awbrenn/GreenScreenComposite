@@ -123,17 +123,17 @@ Image imageReader (string filename) {
     return convertVectorToPixelPointers(oiio_pixels, channels, image);
 }
 
-unsigned char calculateColor(unsigned char color1, unsigned char color2, unsigned char alpha) {
-    return color1 + (1 - alpha) * color2;
+unsigned char calculateColor(unsigned char color1, unsigned char color2, unsigned char alpha1, unsigned char alpha2) {
+    return (unsigned char) (((alpha1 / 255.0) * (color1 / 255.0) + (1 - (alpha1 / 255.0)) * (alpha2 / 255.0) * (color2 /255.0)) * 255);
 }
 
 void overOperation(Image imageA, Image imageB) {
     for (int row = 0; row < GLUT_IMAGE_HEIGHT; row++)
         for (int col = 0; col < GLUT_IMAGE_WIDTH; col++) {
-            GLUT_PIXMAP[row][col].r = calculateColor(imageA.pixmap[row][col].r, imageB.pixmap[row][col].r, imageA.pixmap[row][col].a);
-            GLUT_PIXMAP[row][col].g = calculateColor(imageA.pixmap[row][col].g, imageB.pixmap[row][col].g, imageA.pixmap[row][col].a);
-            GLUT_PIXMAP[row][col].b = calculateColor(imageA.pixmap[row][col].b, imageB.pixmap[row][col].b, imageA.pixmap[row][col].a);
-            GLUT_PIXMAP[row][col].a = calculateColor(imageA.pixmap[row][col].a, imageB.pixmap[row][col].a, imageA.pixmap[row][col].a);
+            GLUT_PIXMAP[row][col].r = calculateColor(imageA.pixmap[row][col].r, imageB.pixmap[row][col].r, imageA.pixmap[row][col].a, imageB.pixmap[row][col].a);
+            GLUT_PIXMAP[row][col].g = calculateColor(imageA.pixmap[row][col].g, imageB.pixmap[row][col].g, imageA.pixmap[row][col].a, imageB.pixmap[row][col].a);
+            GLUT_PIXMAP[row][col].b = calculateColor(imageA.pixmap[row][col].b, imageB.pixmap[row][col].b, imageA.pixmap[row][col].a, imageB.pixmap[row][col].a);
+            GLUT_PIXMAP[row][col].a = calculateColor(imageA.pixmap[row][col].a, imageB.pixmap[row][col].a, imageA.pixmap[row][col].a, imageB.pixmap[row][col].a);
         }
 }
 
@@ -230,16 +230,22 @@ void openGlInit(int argc, char* argv[]) {
 }
 
 int main (int argc, char* argv[]) {
-    if (argc < 2 || argc > 3)
+    if (argc < 3 || argc > 4)
         errorHandler("Proper use: $> composite A.img B.img"
                 " OR $> composite A.img B.img ouput.img", 1);
 
     Image imageA = imageReader(argv[1]);
+    Image imageB = imageReader(argv[2]);
+    OUTPUT_FILE = argv[3];
+
     // set initial opengl window dimensions to the image A's dimensions
     GLUT_IMAGE_HEIGHT = imageA.height;
     GLUT_IMAGE_WIDTH = imageA.width;
+    GLUT_PIXMAP = new pixel*[GLUT_IMAGE_HEIGHT];
+    GLUT_PIXMAP[0] = new pixel[GLUT_IMAGE_WIDTH * GLUT_IMAGE_HEIGHT];
 
-    Image imageB = imageReader(argv[2]);
+    for (int i = 1; i < GLUT_IMAGE_HEIGHT; i++)
+        GLUT_PIXMAP[i] = GLUT_PIXMAP[i - 1] + GLUT_IMAGE_WIDTH;
 
     overOperation(imageA, imageB);
     openGlInit(argc, argv);
