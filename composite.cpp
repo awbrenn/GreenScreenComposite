@@ -18,8 +18,6 @@
 
 #ifdef __APPLE__
 #  include <GLUT/glut.h>
-#include <AppKit/AppKit.h>
-
 #else
 #  include <GL/glut.h>
 #endif
