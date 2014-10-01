@@ -35,8 +35,10 @@ pixel **PIXMAP;
 char *OUTPUT_FILE = NULL;
 
 // Default settings
-float HUE_RANGE[2] = {131,145};
-float HUE_RANGE_BUFFER = 15; // partially transparent pixels that are just outside of HUE_RANGE
+int HUE_RANGE[2] = {131,145};
+int HUE_BOUNDS_BUFFER[2] = {15, 5}; // partially transparent pixels that are just outside of HUE_RANGE
+int HUE_BOUNDS_BUFFER_ALPHA_VALUE = 50; // value of alpha for pixels in the bounds buffer
+int BRIGHTNESS_RANGE[2] = {20, 90};
 
 // float VALUE_RANGE[2] = {}
 
@@ -102,6 +104,13 @@ unsigned char calculateAlpha(unsigned char r, unsigned char g, unsigned char b) 
     return alpha;
 }
 
+void createAlphamask() {
+    for (int row = IMAGE_HEIGHT-1; row >= 0; row--)
+        for (int col = 0; col < IMAGE_WIDTH; col++) {
+            PIXMAP[row][col].a = calculateAlpha(PIXMAP[row][col].r, PIXMAP[row][col].g, PIXMAP[row][col].b);
+        }
+}
+
 /* Converts pixels from vector to pixel pointers
  * input		- vector of pixels, number of channels
  * output		- None
@@ -121,7 +130,7 @@ void convertVectorToPixelPointers (vector<unsigned char> vector_pixels, int chan
                 PIXMAP[row][col].r = vector_pixels[i++];
                 PIXMAP[row][col].g = vector_pixels[i++];
                 PIXMAP[row][col].b = vector_pixels[i++];
-                PIXMAP[row][col].a = calculateAlpha(PIXMAP[row][col].r, PIXMAP[row][col].g, PIXMAP[row][col].b);
+                PIXMAP[row][col].a = 255;
             }
     }
     else if (channels == 4) {
@@ -130,8 +139,7 @@ void convertVectorToPixelPointers (vector<unsigned char> vector_pixels, int chan
                 PIXMAP[row][col].r = vector_pixels[i++];
                 PIXMAP[row][col].g = vector_pixels[i++];
                 PIXMAP[row][col].b = vector_pixels[i++];
-                PIXMAP[row][col].a = calculateAlpha(PIXMAP[row][col].r, PIXMAP[row][col].g, PIXMAP[row][col].b);
-                i++;
+                PIXMAP[row][col].a = vector_pixels[i++];
             }
     }
 
@@ -265,11 +273,13 @@ void openGlInit(int argc, char* argv[]) {
 void readSettings(char *filename) {
     FILE * pFile;
     pFile = fopen (filename, "r");
-    int hue_lower_bound, hue_upper_bound;
+    int hue_lower_bound, hue_upper_bound, hue_lower_bound_buffer, hue_upper_bound_buffer;
 
     fscanf(pFile, "%d %d", &hue_lower_bound, &hue_upper_bound);
     HUE_RANGE[0] = hue_lower_bound;
     HUE_RANGE[1] = hue_upper_bound;
+    fscanf(pFile, "%d %d", &hue_lower_bound_buffer, &hue_upper_bound_buffer);
+
 
     fclose(pFile);
 
@@ -282,6 +292,7 @@ int main(int argc, char *argv[]) {
 
     readSettings(argv[3]);
     readImage(argv[1]);
+    createAlphamask();
     OUTPUT_FILE = argv[2];
     openGlInit(argc, argv);
 }
