@@ -34,8 +34,10 @@ int IMAGE_WIDTH;
 pixel **PIXMAP;
 char *OUTPUT_FILE = NULL;
 
-// Settings
-float HUE_RANGE[2] = {125,145};
+// Default settings
+float HUE_RANGE[2] = {131,145};
+float HUE_RANGE_BUFFER = 15; // partially transparent pixels that are just outside of HUE_RANGE
+
 // float VALUE_RANGE[2] = {}
 
 /* Handles errors
@@ -91,6 +93,11 @@ unsigned char calculateAlpha(unsigned char r, unsigned char g, unsigned char b) 
 
     convertRGBtoHSV(r, g, b, hue, saturation, value);
     if (hue > HUE_RANGE[0] and hue < HUE_RANGE[1]) alpha = 0;
+//    else if ((hue >= HUE_RANGE[0] - HUE_RANGE_BUFFER and hue < HUE_RANGE[0]) or
+//             (hue <= HUE_RANGE[1] + HUE_RANGE_BUFFER and hue > HUE_RANGE[1]) and
+//             (value > 10 and value < 80)) {
+//        alpha = 20;
+//    }
 
     return alpha;
 }
@@ -217,7 +224,7 @@ void handleKey(unsigned char key, int x, int y) {
         writeImage();
     }
     else if (key == 'q' || key == 'Q') {
-        cerr << "\nProgram Terminated." << endl;
+        cout << "\nProgram Terminated." << endl;
         exit(0);
     }
 }
@@ -255,9 +262,25 @@ void openGlInit(int argc, char* argv[]) {
     glutMainLoop();
 }
 
+void readSettings(char *filename) {
+    FILE * pFile;
+    pFile = fopen (filename, "r");
+    int hue_lower_bound, hue_upper_bound;
+
+    fscanf(pFile, "%d %d", &hue_lower_bound, &hue_upper_bound);
+    HUE_RANGE[0] = hue_lower_bound;
+    HUE_RANGE[1] = hue_upper_bound;
+
+    fclose(pFile);
+
+}
+
 int main(int argc, char *argv[]) {
-    if (argc != 3)
-        handleError("Proper use: $> alphamask input.img output.img", 1);
+    if (argc != 3 and argc != 4)
+        handleError("Proper use:\n$> alphamask input.img output.img\n"
+                    "$> alphamask input.img output.img settings.txt", 1);
+
+    readSettings(argv[3]);
     readImage(argv[1]);
     OUTPUT_FILE = argv[2];
     openGlInit(argc, argv);

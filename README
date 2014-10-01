@@ -1,0 +1,82 @@
+Author: Austin Brennan
+Email: awbrenn@g.clemson.edu
+Date: October 1, 2014
+
+
+--------
+alphmask
+--------
+
+Program Description:
+    The program takes an image and calculates an alphamask.
+    The alphamask image is diplayed in an opengl window and
+    can be saved with the w key.
+
+Compilation:
+    $> make
+
+Use Cases:
+    $> alphamask input.img output.img
+    - Displays the input image with a calculated value for alpha
+    - Saves image to output.img when the w key is pressed
+    - Uses default values for alpha calculation
+
+    $> alphamask input.img output.img hue_lower_bound hue_upper_bound
+    - Displays the input image with a calculated value for alpha
+    - Saves image to output.img when the w key is pressed
+    - Uses hue_lower_bound and hue_upper_bound for alphamask calculation
+    - hue_lower_bound and hue_upper_bound set a range for hue values of
+      pixels that should have an alpha value of zero.
+    - range for hue bound values is 0 - 360
+
+Known Bugs:
+    - If hue range is close to zero 0 or close to 360, the pixels with hues
+      just outside the range will not have a
+
+Additional Information:
+    - Nothing from the advanced section is implemented
+
+---------
+composite
+---------
+
+Compilation:
+    $> make
+
+Program Description:
+    The program takes two images and calculates A over B.
+    The resulting image is displayed in an opengl window.
+    If an ouput filename is specified on the command line,
+    the program will write what is in the opengl window to
+    the output file when the w key is pressed.
+
+Use Cases:
+    $> composite A.img B.img
+    - Displays image A over image B in a opengl window
+
+    $> composite A.img B.img output.img
+    - Displays image A over image B in a opengl window
+    - Saves image to output.img when the w key is pressed
+
+Known Bugs:
+    None
+
+Additional Information:
+    None
+
+------------------------------------------------
+Steps to Create Submitted Composite of Dr. House
+------------------------------------------------
+
+    1. compile programs
+        $> make
+
+    2. Run alphamask with default hue bound settings
+        $> alphamask dhouse.png output.png
+
+    3. Save image with w key
+
+    4. Run composite program with output.img from alphamask as A.img on command line
+        $> composite output.png background.png final_composite.png
+
+    5. Press w key to get final composite saved as final_composite.png

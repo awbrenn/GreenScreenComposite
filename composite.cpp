@@ -191,7 +191,7 @@ void handleKey(unsigned char key, int x, int y) {
             errorHandler("Cannot write to file. Specify filename in third argument to write to file.", false);
     }
     else if (key == 'q' || key == 'Q') {
-        printf("\nProgram Terminated.\n");
+        cout << "Program Terminated" << endl;
         exit(0);
     }
 }
